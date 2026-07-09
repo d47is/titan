@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .shape-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 40px);
+            grid-template-rows: repeat(auto-fill, 40px);
+            gap: 0;
+            pointer-events: none;
+        }
+        
+        .shape-grid .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        
+        .shape-grid .cell .shape {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #2F293A;
+            transition: all 0.3s ease;
+            background: transparent;
+        }
+        
+        .shape-grid .cell .shape.square { border-radius: 2px; }
+        .shape-grid .cell .shape.hexagon {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            border: 1px solid #2F293A;
+            background: transparent;
+        }
+        .shape-grid .cell .shape.circle { border-radius: 50%; }
+        .shape-grid .cell .shape.triangle {
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            border: 1px solid #2F293A;
+            background: transparent;
+        }
+        
+        .shape-grid .cell:hover .shape {
+            background: #222222;
+            border-color: #222222;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(34, 34, 34, 0.3);
+        }
+        
+        .shape-grid .cell .shape.hovered {
+            background: #222222;
+            border-color: #222222;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: transparent;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header {
+            padding: 30px 30px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            width: 100%;
+        }
+        
+        .header h1 {
+            color: #00ffff;
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .header h1 span {
+            font-weight: 700;
+        }
+        
+        .chat-area {
+            flex: 1;
+            padding: 20px 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: transparent;
+        }
+        
+        .chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-area::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.02);
+        }
+        .chat-area::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        .message {
+            max-width: 75%;
+            padding: 12px 20px;
+            border-radius: 12px;
+            animation: slideUp 0.3s ease;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            align-self: flex-end;
+            background: rgba(0, 255, 255, 0.15);
+            color: #ccd6f6;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-bottom-right-radius: 4px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .message.ai {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ccd6f6;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom-left-radius: 4px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .message.system {
+            align-self: center;
+            background: rgba(255, 215, 0, 0.08);
+            color: #ffd700;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            font-size: 12px;
+            padding: 6px 16px;
+            max-width: 90%;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .message.error {
+            align-self: center;
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 0, 0, 0.1);
+            font-size: 12px;
+            padding: 6px 16px;
+            max-width: 90%;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .message .time {
+            font-size: 10px;
+            opacity: 0.3;
+            margin-top: 4px;
+            display: block;
+        }
+        
+        .circle-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+            position: relative;
+            background: transparent;
+        }
+        
+        .circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.15), rgba(0, 255, 255, 0.02));
+            border: 2px solid rgba(0, 255, 255, 0.25);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            backdrop-filter: blur(5px);
+        }
+        
+        .circle:hover {
+            border-color: rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.15);
+        }
+        
+        .circle.active {
+            border-color: #00ffff;
+            box-shadow: 0 0 80px rgba(0, 255, 255, 0.4), inset 0 0 60px rgba(0, 255, 255, 0.1);
+            transform: scale(1.08);
+        }
+        
+        .circle.pulse {
+            animation: pulse-circle 0.8s infinite;
+        }
+        
+        @keyframes pulse-circle {
+            0% { transform: scale(1); box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); }
+            50% { transform: scale(1.1); box-shadow: 0 0 80px rgba(0, 255, 255, 0.3); }
+            100% { transform: scale(1); box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); }
+        }
+        
+        .circle .inner {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.01));
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00ffff;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        
+        .circle .inner.listening {
+            color: #ff6b6b;
+            animation: listen-pulse 0.5s infinite;
+        }
+        
+        @keyframes listen-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .circle .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 255, 255, 0.08);
+            animation: ripple 1.5s infinite;
+            pointer-events: none;
+        }
+        
+        .circle .ripple:nth-child(1) { width: 140px; height: 140px; animation-delay: 0s; }
+        .circle .ripple:nth-child(2) { width: 180px; height: 180px; animation-delay: 0.5s; }
+        .circle .ripple:nth-child(3) { width: 220px; height: 220px; animation-delay: 1s; }
+        
+        @keyframes ripple {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        
+        .circle-label {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+        
+        .circle-label.active-label { color: #00ffff; }
+        .circle-label.error-label { color: #ff6b6b; }
+        
+        .meter-container {
+            width: 80%;
+            max-width: 400px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .meter-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            border-radius: 2px;
+            transition: width 0.05s ease;
+        }
+        
+        .mic-status {
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 10px;
+            text-align: center;
+            padding: 2px 0;
+            letter-spacing: 1px;
+            min-height: 20px;
+        }
+        
+        .live-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            text-align: center;
+            padding: 4px 20px;
+            min-height: 24px;
+            letter-spacing: 0.5px;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 255, 0.05);
+            max-width: 80%;
+            margin: 0 auto;
+            font-style: italic;
+            backdrop-filter: blur(5px);
+        }
+        
+        .live-subtitle.active {
+            color: #00ffff;
+            border-color: rgba(0, 255, 255, 0.1);
+        }
+        
+        .quick-actions {
+            padding: 8px 30px 12px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: transparent;
+            flex-shrink: 0;
+            width: 100%;
+        }
+        
+        .quick-actions button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            padding: 3px 12px;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .quick-actions button:hover {
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+        }
+        
+        .input-area {
+            padding: 12px 30px 20px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            width: 100%;
+        }
+        
+        .input-area input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: #ccd6f6;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .input-area input:focus {
+            border-color: rgba(0, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .input-area input::placeholder {
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+        }
+        
+        .input-area button {
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 22px;
+            color: #00ffff;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+        
+        .input-area button:hover {
+            background: rgba(0, 255, 255, 0.15);
+            border-color: rgba(0, 255, 255, 0.3);
+        }
+        
+        .input-area button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .test-badge {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.05);
+            font-size: 9px;
+            letter-spacing: 1px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .speaking-indicator {
+            display: none;
+            color: #00ffff;
+            font-size: 11px;
+            text-align: center;
+            padding: 2px 0;
+            letter-spacing: 2px;
+            animation: blink 0.8s infinite;
+        }
+        
+        .speaking-indicator.active { display: block; }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 { font-size: 20px; letter-spacing: 2px; }
+            .header { padding: 20px 15px 15px; }
+            .chat-area { padding: 15px 15px; }
+            .message { max-width: 90%; font-size: 13px; }
+            .circle { width: 80px; height: 80px; }
+            .circle .inner { width: 40px; height: 40px; font-size: 11px; }
+            .input-area { padding: 10px 15px 15px; flex-direction: column; }
+            .input-area button { padding: 10px; }
+            .quick-actions { padding: 6px 15px 10px; gap: 4px; }
+            .quick-actions button { font-size: 9px; padding: 2px 10px; }
+            .circle .ripple:nth-child(1) { width: 110px; height: 110px; }
+            .circle .ripple:nth-child(2) { width: 140px; height: 140px; }
+            .circle .ripple:nth-child(3) { width: 170px; height: 170px; }
+            .live-subtitle { font-size: 12px; max-width: 95%; }
+            .meter-container { width: 90%; }
+            .shape-grid .cell { width: 30px; height: 30px; }
+            .shape-grid .cell .shape { width: 20px; height: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shape-grid" id="shapeGrid"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>TITAN</h1>
+        </div>
+        
+        <div class="chat-area" id="chatArea">
+            <div class="message system">System initialized. Press and hold the circle to speak.</div>
+        </div>
+        
+        <div class="circle-container">
+            <div class="circle" id="circle">
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="inner" id="circleInner">HOLD</div>
+            </div>
+            <div class="circle-label" id="circleLabel">PRESS & HOLD TO SPEAK</div>
+            
+            <div class="meter-container">
+                <div class="meter-bar" id="meterBar"></div>
+            </div>
+            
+            <div class="live-subtitle" id="liveSubtitle">Speak into your microphone...</div>
+            <div class="mic-status" id="micStatus">Click the circle to start</div>
+            <div class="speaking-indicator" id="speakingIndicator">SPEAKING...</div>
+        </div>
+        
+        <div class="quick-actions">
+            <button onclick="quickCmd('time')">TIME</button>
+            <button onclick="quickCmd('date')">DATE</button>
+            <button onclick="quickCmd('help')">HELP</button>
+            <button onclick="clearChat()">CLEAR</button>
+        </div>
+        
+        <div class="input-area" id="inputArea">
+            <input id="textInput" type="text" placeholder="Type for testing..." onkeydown="if(event.key==='Enter')sendMessage()">
+            <button id="sendBtn" onclick="sendMessage()">SEND</button>
+        </div>
+        
+        <div class="test-badge">TEST MODE - TEXT INPUT ACTIVE</div>
+    </div>
+
+    <script>
+        (function() {
+            const grid = document.getElementById('shapeGrid');
+            const shapeTypes = ['square', 'hexagon', 'circle', 'triangle'];
+            const size = 40;
+            
+            const cols = Math.ceil(window.innerWidth / size);
+            const rows = Math.ceil(window.innerHeight / size);
+            const totalCells = cols * rows;
+            
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                const shape = document.createElement('div');
+                const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                shape.className = `shape ${shapeType}`;
+                
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const delay = ((col + row) % 10) * 0.05;
+                cell.style.transitionDelay = delay + 's';
+                shape.style.transitionDelay = delay + 's';
+                
+                let hoverTimer = null;
+                cell.addEventListener('mouseenter', function() {
+                    shape.classList.add('hovered');
+                    clearTimeout(hoverTimer);
+                });
+                cell.addEventListener('mouseleave', function() {
+                    hoverTimer = setTimeout(() => {
+                        shape.classList.remove('hovered');
+                    }, 300);
+                });
+                
+                cell.appendChild(shape);
+                grid.appendChild(cell);
+            }
+            
+            window.addEventListener('resize', function() {
+                const newCols = Math.ceil(window.innerWidth / size);
+                const newRows = Math.ceil(window.innerHeight / size);
+                const newTotal = newCols * newRows;
+                
+                while (grid.children.length < newTotal) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    const shape = document.createElement('div');
+                    const shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                    shape.className = `shape ${shapeType}`;
+                    cell.appendChild(shape);
+                    grid.appendChild(cell);
+                }
+                
+                while (grid.children.length > newTotal) {
+                    grid.removeChild(grid.lastChild);
+                }
+            });
+        })();
+
+        let isProcessing = false;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isHeld = false;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let animationFrame = null;
+        let audioElement = null;
+        
+        const circle = document.getElementById('circle');
+        const circleInner = document.getElementById('circleInner');
+        const circleLabel = document.getElementById('circleLabel');
+        const micStatus = document.getElementById('micStatus');
+        const chatArea = document.getElementById('chatArea');
+        const textInput = document.getElementById('textInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const meterBar = document.getElementById('meterBar');
+        const liveSubtitle = document.getElementById('liveSubtitle');
+        const speakingIndicator = document.getElementById('speakingIndicator');
+        
+        function addMessage(type, text) {
+            if (!text || text === 'null' || text === 'undefined') {
+                text = 'No response received';
+            }
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            
+            if (type === 'user') {
+                div.innerHTML = `${text}<span class="time">${time}</span>`;
+            } else if (type === 'system') {
+                div.textContent = text;
+            } else if (type === 'error') {
+                div.textContent = 'Error: ' + text;
+            } else {
+                div.innerHTML = `${text}<span class="time">${time}</span>`;
+            }
+            
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function playVoice(text) {
+            if (!text || text.length < 2 || text === 'null' || text === 'undefined') return;
+            
+            speakingIndicator.classList.add('active');
+            
+            fetch('/speak', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Audio generation failed');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                if (blob.size < 100) {
+                    throw new Error('Audio file too small');
+                }
+                const url = URL.createObjectURL(blob);
+                if (audioElement) {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                    URL.revokeObjectURL(audioElement.src);
+                }
+                audioElement = new Audio(url);
+                audioElement.onended = function() {
+                    speakingIndicator.classList.remove('active');
+                    URL.revokeObjectURL(url);
+                };
+                audioElement.onerror = function(e) {
+                    console.error('Audio playback error:', e);
+                    speakingIndicator.classList.remove('active');
+                    URL.revokeObjectURL(url);
+                };
+                audioElement.play().catch(function(err) {
+                    console.error('Play error:', err);
+                    speakingIndicator.classList.remove('active');
+                });
+            })
+            .catch(function(err) {
+                console.error('Voice error:', err);
+                speakingIndicator.classList.remove('active');
+            });
+        }
+        
+        function updateMeter() {
+            if (analyser && isRecording) {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                let avg = sum / dataArray.length;
+                let percent = Math.min((avg / 128) * 100, 100);
+                meterBar.style.width = percent + '%';
+                
+                if (percent > 60) {
+                    meterBar.style.background = 'linear-gradient(90deg, #00ff00, #ffff00, #ff0000)';
+                } else if (percent > 30) {
+                    meterBar.style.background = 'linear-gradient(90deg, #00ff00, #ffff00)';
+                } else {
+                    meterBar.style.background = '#00ff00';
+                }
+                
+                if (percent > 5) {
+                    liveSubtitle.textContent = 'Speaking...';
+                    liveSubtitle.classList.add('active');
+                } else {
+                    liveSubtitle.textContent = 'Speak into your microphone...';
+                    liveSubtitle.classList.remove('active');
+                }
+                
+                animationFrame = requestAnimationFrame(updateMeter);
+            }
+        }
+        
+        function startRecording() {
+            if (isProcessing) {
+                addMessage('system', 'Please wait, still processing...');
+                return;
+            }
+            
+            if (isRecording) {
+                return;
+            }
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                addMessage('error', 'Your browser does not support microphone access.');
+                circleLabel.textContent = 'NOT SUPPORTED';
+                circleLabel.classList.add('error-label');
+                return;
+            }
+            
+            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                .then(function(stream) {
+                    isRecording = true;
+                    audioChunks = [];
+                    
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const source = audioContext.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    
+                    const options = {
+                        mimeType: 'audio/webm;codecs=opus',
+                        audioBitsPerSecond: 16000
+                    };
+                    
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        mediaRecorder = new MediaRecorder(stream);
+                    }
+                    
+                    mediaRecorder.ondataavailable = function(event) {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = function() {
+                        if (audioChunks.length === 0) {
+                            addMessage('system', 'No audio recorded. Please try again.');
+                            circle.classList.remove('active', 'pulse');
+                            circleInner.textContent = 'HOLD';
+                            circleInner.classList.remove('listening');
+                            circleLabel.textContent = 'PRESS & HOLD TO SPEAK';
+                            circleLabel.classList.remove('active-label');
+                            micStatus.textContent = 'Click the circle to start';
+                            liveSubtitle.textContent = 'Speak into your microphone...';
+                            liveSubtitle.classList.remove('active');
+                            meterBar.style.width = '0%';
+                            isRecording = false;
+                            if (animationFrame) {
+                                cancelAnimationFrame(animationFrame);
+                            }
+                            stream.getTracks().forEach(track => track.stop());
+                            return;
+                        }
+                        
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.onloadend = function() {
+                            const base64Audio = reader.result.split(',')[1];
+                            sendAudioToServer(base64Audio);
+                        };
+                        reader.readAsDataURL(audioBlob);
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start(1000);
+                    updateMeter();
+                    
+                    circle.classList.add('active', 'pulse');
+                    circleInner.textContent = '...';
+                    circleInner.classList.add('listening');
+                    circleLabel.textContent = 'LISTENING...';
+                    circleLabel.classList.add('active-label');
+                    micStatus.textContent = 'Recording... speak now!';
+                    liveSubtitle.textContent = 'Recording...';
+                    liveSubtitle.classList.add('active');
+                    textInput.placeholder = 'Recording...';
+                    
+                    setTimeout(function() {
+                        if (isRecording && mediaRecorder && mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                            isRecording = false;
+                            if (animationFrame) {
+                                cancelAnimationFrame(animationFrame);
+                            }
+                        }
+                    }, 5000);
+                    
+                })
+                .catch(function(err) {
+                    console.error('Microphone error:', err);
+                    isRecording = false;
+                    circle.classList.remove('active', 'pulse');
+                    circleInner.textContent = 'HOLD';
+                    circleInner.classList.remove('listening');
+                    circleLabel.textContent = 'MIC ERROR';
+                    circleLabel.classList.add('error-label');
+                    micStatus.textContent = 'Error: ' + err.message;
+                    liveSubtitle.textContent = 'Microphone error';
+                    meterBar.style.width = '0%';
+                    
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        addMessage('error', 'Microphone access denied. Please allow microphone access and refresh.');
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        addMessage('error', 'No microphone found. Please connect a microphone.');
+                    } else {
+                        addMessage('error', 'Microphone error: ' + err.message);
+                    }
+                    
+                    setTimeout(function() {
+                        circleLabel.textContent = 'PRESS & HOLD TO SPEAK';
+                        circleLabel.classList.remove('error-label');
+                        micStatus.textContent = 'Click the circle to start';
+                        liveSubtitle.textContent = 'Speak into your microphone...';
+                        liveSubtitle.classList.remove('active');
+                    }, 3000);
+                });
+        }
+        
+        function stopRecording() {
+            if (isRecording && mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                isRecording = false;
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+            isHeld = false;
+        }
+        
+        function sendAudioToServer(base64Audio) {
+            circleLabel.textContent = 'PROCESSING...';
+            micStatus.textContent = 'Converting speech to text...';
+            liveSubtitle.textContent = 'Processing...';
+            
+            fetch('/speech-to-text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ audio: base64Audio })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.text && data.text.trim()) {
+                    textInput.value = data.text.trim();
+                    liveSubtitle.textContent = 'Text: ' + data.text.trim();
+                    liveSubtitle.classList.add('active');
+                    setTimeout(() => {
+                        sendMessage();
+                    }, 300);
+                } else {
+                    addMessage('system', 'Could not understand audio. Please try again or type your message.');
+                    micStatus.textContent = 'No speech detected';
+                    liveSubtitle.textContent = 'No speech detected';
+                    liveSubtitle.classList.remove('active');
+                    setTimeout(function() {
+                        micStatus.textContent = 'Click the circle to start';
+                        liveSubtitle.textContent = 'Speak into your microphone...';
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Speech-to-text error:', error);
+                addMessage('error', 'Failed to process audio: ' + error.message);
+                micStatus.textContent = 'Server error';
+                liveSubtitle.textContent = 'Server error';
+            })
+            .finally(function() {
+                circle.classList.remove('active', 'pulse');
+                circleInner.textContent = 'HOLD';
+                circleInner.classList.remove('listening');
+                circleLabel.textContent = 'PRESS & HOLD TO SPEAK';
+                circleLabel.classList.remove('active-label');
+                textInput.placeholder = 'Type for testing...';
+                meterBar.style.width = '0%';
+                if (!micStatus.textContent.includes('error') && !liveSubtitle.textContent.includes('error')) {
+                    setTimeout(() => {
+                        micStatus.textContent = 'Click the circle to start';
+                        if (!liveSubtitle.textContent.includes('Text:')) {
+                            liveSubtitle.textContent = 'Speak into your microphone...';
+                            liveSubtitle.classList.remove('active');
+                        }
+                    }, 3000);
+                }
+            });
+        }
+        
+        function setupCircleEvents() {
+            circle.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                if (!isRecording) {
+                    startRecording();
+                    isHeld = true;
+                }
+            });
+            
+            circle.addEventListener('mouseup', function(e) {
+                e.preventDefault();
+                if (isHeld) {
+                    stopRecording();
+                    isHeld = false;
+                }
+            });
+            
+            circle.addEventListener('mouseleave', function(e) {
+                if (isHeld) {
+                    stopRecording();
+                    isHeld = false;
+                }
+            });
+            
+            circle.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                if (!isRecording) {
+                    startRecording();
+                    isHeld = true;
+                }
+            }, { passive: false });
+            
+            circle.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                if (isHeld) {
+                    stopRecording();
+                    isHeld = false;
+                }
+            }, { passive: false });
+            
+            circle.addEventListener('touchcancel', function(e) {
+                if (isHeld) {
+                    stopRecording();
+                    isHeld = false;
+                }
+            });
+        }
+        
+        function quickCmd(cmd) {
+            textInput.value = cmd;
+            sendMessage();
+        }
+        
+        function clearChat() {
+            chatArea.innerHTML = '';
+            addMessage('system', 'Chat cleared.');
+        }
+        
+        function sendMessage() {
+            if (isProcessing) return;
+            
+            const msg = textInput.value.trim();
+            if (!msg) {
+                addMessage('system', 'Please say or type something.');
+                return;
+            }
+            
+            textInput.value = '';
+            isProcessing = true;
+            sendBtn.disabled = true;
+            circle.style.opacity = '0.3';
+            
+            addMessage('user', msg);
+            circleInner.textContent = '...';
+            circle.classList.add('pulse');
+            circleLabel.textContent = 'THINKING...';
+            circleLabel.classList.add('active-label');
+            micStatus.textContent = 'Processing...';
+            liveSubtitle.textContent = 'Thinking...';
+            liveSubtitle.classList.add('active');
+            
+            fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            })
+            .then(res => res.json())
+            .then(data => {
+                let responseText = '';
+                if (data.type === 'system') {
+                    addMessage('system', data.response || 'Command executed.');
+                    responseText = data.response || 'Command executed.';
+                } else if (data.type === 'error') {
+                    addMessage('error', data.response || 'Unknown error.');
+                    responseText = data.response || 'Unknown error.';
+                } else {
+                    const response = data.response || 'No response received.';
+                    addMessage('ai', response);
+                    responseText = response;
+                }
+                
+                liveSubtitle.textContent = 'Response: ' + responseText.substring(0, 50) + '...';
+                
+                if (responseText && responseText.length > 3 && responseText !== 'null' && responseText !== 'undefined') {
+                    setTimeout(function() {
+                        playVoice(responseText);
+                    }, 500);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                addMessage('error', 'Connection error. Is the server running?');
+                liveSubtitle.textContent = 'Connection error';
+            })
+            .finally(() => {
+                isProcessing = false;
+                sendBtn.disabled = false;
+                circle.style.opacity = '1';
+                circle.classList.remove('pulse');
+                circleInner.textContent = 'HOLD';
+                circleLabel.textContent = 'PRESS & HOLD TO SPEAK';
+                circleLabel.classList.remove('active-label');
+                micStatus.textContent = 'Click the circle to start';
+                textInput.focus();
+                setTimeout(function() {
+                    if (!liveSubtitle.textContent.includes('Response:')) {
+                        liveSubtitle.textContent = 'Speak into your microphone...';
+                        liveSubtitle.classList.remove('active');
+                    }
+                }, 3000);
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                circle.style.opacity = '0.3';
+                circle.style.cursor = 'not-allowed';
+                circleLabel.textContent = 'NOT SUPPORTED';
+                circleLabel.classList.add('error-label');
+                circleInner.textContent = 'X';
+                micStatus.textContent = 'Browser does not support microphone';
+                liveSubtitle.textContent = 'Browser not supported';
+                addMessage('error', 'Your browser does not support microphone access. Use Chrome or Edge.');
+            } else {
+                addMessage('system', 'Voice ready. Press and hold the circle to speak.');
+                setupCircleEvents();
+                micStatus.textContent = 'Click the circle to start';
+                liveSubtitle.textContent = 'Speak into your microphone...';
+            }
+            textInput.focus();
+        });
+    </script>
+</body>
+</html>
