@@ -307,7 +307,7 @@ def get_system_response(query):
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("JARVIS AI - Professional Assistant")
+    print("TITAN AI - Professional Assistant")
     print("=" * 50)
     print("Open http://localhost:5000 in your browser")
     print("=" * 50)
