@@ -35,9 +35,6 @@ Future versions will include RAG, App Integration, and Image/Video generation ca
   
   <img src="screenshots/listening.png" alt="Listening State" width="400">
   <p><em>Orb active — listening for voice input</em></p>
-  
-  <img src="screenshots/chat.png" alt="Chat Conversation" width="400">
-  <p><em>Chat bubbles with iMessage-style design</em></p>
 </div>
 
 ---
