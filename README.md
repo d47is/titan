@@ -34,7 +34,7 @@ Future versions will include RAG, App Integration, and Image/Video generation ca
   <p><em>Idle state — waiting for input</em></p>
   
   <img src="screenshots/listening.png" alt="Listening State" width="400">
-  <p><em>Orb active — listening for voice input</em></p>
+  <p><em>Active state — listening for voice input</em></p>
 </div>
 
 ---
