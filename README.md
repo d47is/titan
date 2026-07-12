@@ -75,4 +75,4 @@ Future versions will include RAG, App Integration, and Image/Video generation ca
 - espeak
 - portaudio19-dev
 
-<div align="center"> <p>Built by Davis and Nathan</p> </div> ```
+<div align="center"> <p>Built by Davis and Nathan</p> </div>
