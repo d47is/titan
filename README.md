@@ -2,8 +2,6 @@
 
 <div align="center">
   <img src="screenshots/banner.png" alt="TITAN Banner" width="800">
-  
-  *An AI assistant with voice commands*
 </div>
 
 ---
